@@ -10,6 +10,8 @@ import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageChannel;
 import net.dv8tion.jda.core.entities.MessageHistory;
 import net.dv8tion.jda.core.entities.User;
+import net.dv8tion.jda.core.events.Event;
+import net.dv8tion.jda.core.events.ReadyEvent;
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.core.hooks.ListenerAdapter;
 import net.dv8tion.jda.core.Permission;
@@ -18,13 +20,14 @@ public class App extends ListenerAdapter
 {
     public static void main( String[] args ) throws Exception
     {
-    	JDA jda = new JDABuilder(AccountType.BOT).setToken(Reference.token).buildBlocking();
+    	JDA jda = new JDABuilder(AccountType.BOT).setToken(Reference.token).build();
         jda.addEventListener(new App());
     }
     
     @Override
     public void onMessageReceived(MessageReceivedEvent evt)
     {
+    	
     	//********* Objects *********\\
     	User objUser = evt.getAuthor();
     	MessageChannel objMsgCh = evt.getChannel();
@@ -36,13 +39,13 @@ public class App extends ListenerAdapter
     	//Print list of commands
     	if(objMsg.getContentRaw().equalsIgnoreCase(Reference.prefix+"commands") || objMsg.getContentRaw().equalsIgnoreCase(Reference.prefix+"help"))
     	{
-    		objMsgCh.sendMessage(objUser.getAsMention() + "```css\nNormal User Commands: \n"
-    				+ "\t'>commands' - You just typed this. If you don't know what this does, then you should be worried.\n"
-    				+ "\t'>help' - Help me, Eirin! Interchangeable with '>commands'.\n"
+    		objMsgCh.sendMessage(objUser.getAsMention() + "\n**Normal User Commands**: \n"
+    				+ "\t'>commands' - Prints out a list of commands.\n"
+    				+ "\t'>help' - Help me, ~~Eirin~~ Tamamo! Interchangeable with '>commands'.\n"
     				+ "\t'>ping' - Pings me in order to see if I'm working.\n"
     				+ "\t'>roll xdy' - where x equals the number of dice and y equals the number of sides on said dice.\n"
-    				+ "\nAdmin Commands: \n"
-    				+ "\t'>clear' - Clears 'x' amount of previous messages to help with channel message clutter.```").queue();
+    				+ "\n**Admin Commands**: \n"
+    				+ "\t'>clear' - Clears 'x' amount of previous messages to help with channel message clutter.").queue();
     	}
     	
     	//Ping bot to see if it works
@@ -57,15 +60,13 @@ public class App extends ListenerAdapter
     		
     		//objMsgCh.sendMessage("Roll request received!").queue();
     		
-    		int indexOfD = 0;
-    		
     		//Iterate through the user input to see if it's in a valid format
     		boolean isValid = false;
     		
+			//Checking for index of 'd'
     		for (int i = 7; i < objMsg.getContentRaw().length(); i++) {
     			if (objMsg.getContentRaw().toLowerCase().charAt(i) == 'd') {
     				isValid = true;
-    				indexOfD = i;
     				//objMsgCh.sendMessage("isValid is true!").queue();
     				//objMsgCh.sendMessage("indexOf'd': " + indexOfD).queue();
     				break;
@@ -75,13 +76,11 @@ public class App extends ListenerAdapter
     		//If it is, then continue with the rest of the script
     		if (isValid) 
 			{
-    			
-				//objMsgCh.sendMessage("Running script").queue();
-    			
-    			//Creating strings to hold string version of integers
-        		String sNumDice = "";
-        		String sNumSides = "";
-        		String sNumAfter = "";
+        		//Create new string without spaces to work with
+        		String msg = objMsg.getContentRaw().toLowerCase();
+        		String rollMsgNoSpace = "";
+        		int indexOfD = 0;
+        		int indexOfMath = 0;
         		
         		//booleans to see if we do math after the roll
     			boolean addAfterRoll = false;
@@ -89,56 +88,76 @@ public class App extends ListenerAdapter
         		
         		try {
         			
+        			
+            		for (int i = 0; i < objMsg.getContentRaw().length(); i++) {
+            			
+            			//If there's no space, then add the character to the string
+            			if (msg.charAt(i) != ' '){
+            				
+            				//Checking for index of 'd'
+            				if (objMsg.getContentRaw().toLowerCase().charAt(i) == 'd')
+            					indexOfD = rollMsgNoSpace.length()+1;
+
+            				rollMsgNoSpace = rollMsgNoSpace + msg.charAt(i);
+            			}
+
+            		}
+            		
+            		for (int i = 0; i < rollMsgNoSpace.length(); i++) {
+        				//Checking for index of math
+        				if (rollMsgNoSpace.charAt(i) == '+') {
+        					
+        					if (isInteger(rollMsgNoSpace.substring(i+1, i+2))) {
+        						addAfterRoll = true;
+            					indexOfMath = i+1;
+            					//objMsg.getTextChannel().sendMessage("Adding after!").queue();
+        					}
+        					
+        				}
+        					
+        				//Checking for index of math
+        				if (rollMsgNoSpace.charAt(i) == '-') {
+        					
+        					if (isInteger(rollMsgNoSpace.substring(i+1, i+2))) {
+        						addAfterRoll = true;
+            					indexOfMath = i+1;
+            					//objMsg.getTextChannel().sendMessage("Subtracting after!").queue();
+        					}
+
+        				}
+            		}
+            		
+        		} catch (Exception e) {
+        			System.out.print("Something went wrong!");
+        		}
+    			
+        		
+				//objMsgCh.sendMessage("Running script").queue();
+    			
+    			//Creating strings to hold string version of integers
+        		String sNumDice = "";
+        		String sNumSides = "";
+        		String sNumAfter = "";
+        		
+        		try {
+        			
             		//Iterate through the user input to see where the first number ends
-        			for (int i = 6; i < objMsg.getContentRaw().length(); i++) {
-        				if (isInteger(objMsg.getContentRaw().substring(i, i+1))){
-        					sNumDice = sNumDice + objMsg.getContentRaw().substring(i, i+1);
+        			for (int i = 5; i < rollMsgNoSpace.length(); i++) {
+        				if (isInteger(rollMsgNoSpace.substring(i, i+1))){
+        					sNumDice = sNumDice + rollMsgNoSpace.substring(i, i+1);
         				} else break;
         			}
         			
-        			int indexOfMath = 0;
-        			
         			//Iterate through the user input to see where the last number ends, and if we need to add/subtract afterward
-        			for (int i = indexOfD+1; i < objMsg.getContentRaw().length(); i++) {
-        				
-        				/*
-        				//If there is a space, then check to see if there's a plus/minus sign
-        				if (objMsg.getContentRaw().substring(i, i+1).contains(" "))
-        				{
-        					//If there is a plus sign after the space
-            				if (objMsg.getContentRaw().substring(i+1, i+2).contains("+"))
-            				{
-            					//And there is something after the plus sign
-            					if (isInteger(objMsg.getContentRaw().substring(i+2, i+3)))
-            					{
-            						//Set addAfterRoll to true and break out of the loop
-	            					addAfterRoll = true;
-	            					indexOfMath = i;
-	            					break;
-            					}
-            				}
-            				
-            				//If there is a minus sign after the space
-            				if (objMsg.getContentRaw().substring(i+1, i+2).contains("-"))
-            				{
-            					//There is something after the minus sign
-            					if (isInteger(objMsg.getContentRaw().substring(i+2, i+3)))
-            					{
-            						//Set subAfterRoll to true and break out of the loop
-	            					subAfterRoll = true;
-	            					indexOfMath = i;
-	            					break;
-            					}
-            				}
-        				}*/
+        			for (int i = indexOfD; i < rollMsgNoSpace.length(); i++) {
         				
         				//Check to see if we have to do math after
-        				if (objMsg.getContentRaw().substring(i, i+1).contains("+"))
+        				/*if (objMsg.getContentRaw().substring(i, i+1).contains("+"))
         				{
         					//If there is something after the plus sign
         					if (isInteger(objMsg.getContentRaw().substring(i+1, i+2)))
         					{
-            					addAfterRoll = true;
+            					addAfterRoll = true;        			
             					indexOfMath = i;
             					break;
         					}
@@ -153,25 +172,25 @@ public class App extends ListenerAdapter
             					indexOfMath = i;
             					break;
         					}
-        				}
+        				}*/
         				
-        				if (isInteger(objMsg.getContentRaw().substring(i, i+1)))
-        					sNumSides= sNumSides + objMsg.getContentRaw().substring(i, i+1);
+        				if (isInteger(rollMsgNoSpace.substring(i, i+1)))
+        					sNumSides = sNumSides + rollMsgNoSpace.substring(i, i+1);
         				else break;
         			}
         			
         			//Gets the number after
         			if (addAfterRoll || subAfterRoll) {
-        				for (int i = indexOfMath+1; i < objMsg.getContentRaw().length(); i++) {
-        					if (isInteger(objMsg.getContentRaw().substring(i, i+1)))
-        						sNumAfter= sNumAfter + objMsg.getContentRaw().substring(i, i+1);
+        				for (int i = indexOfMath; i < rollMsgNoSpace.length(); i++) {
+        					if (isInteger(rollMsgNoSpace.substring(i, i+1)))
+        						sNumAfter = sNumAfter + rollMsgNoSpace.substring(i, i+1);
         					else break;
         				}
         			}
         			
             		//If not then output error
-        		} catch (Exception IndexOutOfBounds) {
-        			objMsg.getTextChannel().sendMessage("Error: IndexOutOfBounds. What did you do?").queue();
+        		} catch (Exception e) {
+        			objMsg.getTextChannel().sendMessage("Error! What did you do?").queue();
         		}
         		
         		//objMsgCh.sendMessage("numDice: " + sNumDice).queue();
@@ -193,8 +212,6 @@ public class App extends ListenerAdapter
         			
         			//Sum variable to hold our roll totalumDice
         			int sum = 0;
-
-        			int[] diceRolls = new int[numDice];
         			
     				//ArrayList of integers that holds all the rolls
     				List<Integer> rolls = new ArrayList<Integer>();
@@ -248,11 +265,10 @@ public class App extends ListenerAdapter
         			
             		//Creates message history before the current message
             		
-            		//limit(num+1) to delete the previous 'Clearing 'x' messages!' if it exists... probably doesn't work like that though, but meh
-            		MessageHistory history = MessageHistory.getHistoryBefore(objMsgCh, objMsg.getId()).limit(num+1).complete();
+            		MessageHistory history = MessageHistory.getHistoryBefore(objMsgCh, objMsg.getId()).limit(num).complete();
             		
             		//Retrieve the messages in the MessageHistory
-            		history.retrievePast(num+1);
+            		history.retrievePast(num);
             		
             		//Deletes messages using the retrieved messages
         			objMsgCh.purgeMessages(history.getRetrievedHistory());
@@ -272,14 +288,13 @@ public class App extends ListenerAdapter
     	}
     }
 
-
-public boolean isInteger(String input) {
-	try {
-		Integer.parseInt(input);
-		return true;
-	} catch (Exception e) {
-		return false;
+	public boolean isInteger(String input) {
+		try {
+			Integer.parseInt(input);
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
 	}
-}
 
 }
